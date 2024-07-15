@@ -1,0 +1,22 @@
+[project]
+dynamic = ["version"]
+requires-python = "<3.8"
+name = "scintillator_tracer"
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "pvtrace",
+    "trimesh",
+    "scipy",
+]
+readme = "README.md"
+
+[build-system]
+requires = ["setuptools >= 61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["scintillator_tracer"]
+
+[tool.setuptools.dynamic]
+version = {attr = "scintillator_tracer.__version__"}

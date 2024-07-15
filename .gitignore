@@ -1,0 +1,8 @@
+__pycache__/
+build/
+*.egg-info/
+*.FCBak
+examples_and_tests/
+old_code_DELETE/
+data/
+runs_*
