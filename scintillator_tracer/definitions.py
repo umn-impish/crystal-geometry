@@ -29,8 +29,7 @@ def rotation_matrix_from_vectors(vec1: tuple, vec2: tuple):
 
 class ESRSurface(pvtrace.FresnelSurfaceDelegate):
     """
-    A section of the top surface is covered with a perfect mirrors.
-    All other surface obey the Fresnel equations.
+    The surface is covered with a perfect mirror.
     """
 
     def reflectivity(self, surface, ray, geometry, container, adjacent):
@@ -53,27 +52,29 @@ class ESRSurface(pvtrace.FresnelSurfaceDelegate):
 
         # Perfectly reflect
         return 1.0
-        
+
         
     def reflected_direction(self, surface, ray, geometry, container, adjacent):
 
         # Lambertian scattering at 5%
-        # SIGNIFICANTLY slows processing time
-        # if np.random.rand() < 0.05:
-        #     lamb_dir = np.array(lambertian())
-        #     normal = np.array(geometry.normal(ray.position))
-        #     rot = rotation_matrix_from_vectors([0, 0, 1], -1*normal)
-        #     lamb_dir = rot@lamb_dir
-        #     return tuple(lamb_dir)
-        # else:
-        return super().reflected_direction(surface, ray, geometry, container, adjacent)
-
+        # Slows processing time
+        if np.random.rand() < 0.05:
+            lamb_dir = np.array(pvtrace.material.utils.lambertian())
+            normal = np.array(geometry.normal(ray.position))
+            # Lambertian is referenced to the +z direction,
+            # so we need to rotate it to reference the normal of the surface.
+            rot = rotation_matrix_from_vectors([0, 0, 1], normal)
+            lamb_dir = rot@lamb_dir
+            return tuple(lamb_dir)
+        else:
+            return super().reflected_direction(surface, ray, geometry, container, adjacent)
+        
 
 class LYSO(pvtrace.Material):
     def __init__(
         self,
         refractive_index: float = 1.8,
-        absorption_coefficient: float = 1/16
+        absorption_coefficient: float = 1/50 # cm^-1
     ):
         super().__init__(
             refractive_index=refractive_index,

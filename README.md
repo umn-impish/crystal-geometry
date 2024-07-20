@@ -13,10 +13,30 @@ It takes several minutes to run a simulation with a few thousand photons.
 
 The world building functions that lay out the models assume that the SiPM readout is at the top of the geometries, where the +z axis is "up."
 The STL files are in units of mm while the world building assumes units of centimeters (thus, the STL models are scaled when they're read in).
-This inconsistency, while minor, should probably be corrected.
+~~This inconsistency, while minor, should probably be corrected.~~
+I tried making this change, but I was getting a lot of `GeometryError` throws... I am unsure why this is. It seems like scaling the STL files is the best approach for now.
+
+## Hacky `GeometryError` fix
+There appears to be a rounding issue with importing meshes from the STL files.
+The `pvtrace` functions use a threshold value hardcoded into the module, so I had to go in and multiply this threshold by 100 in order to prevent GeometryErrors (it's the `EPS_ZERO` variable in the `pvtrace/geometry/utils.py` file).
+I slightly hesitate to do this since it's a bit hacky, but the threshold is on the order of 10^-10, and I have confirmed in FreeCad that the models themselves do not have any inherent geometry issues (e.g. overlaps).
+It appears it may be a limitation of the `trimesh` package used by `pvtrace`, as there's even a comment in the `pvtrace` code that mentions this.
+
+
+# Installation
+You can install the module using the following command while inside the "crystal-geometry" repository:
+
+> pip install .
+
+for a static install or
+
+> pip install -e .
+
+for an editable install.
 
 # Assumptions
 **BEWARE if you want to make custom models/worlds using the built-in functions and classes!**
+- The y-z plane is taken to be the plane in which the light grid points are made, so keep this in mind if you want to make a new crystal model.
 - As mentioned above, there's an assumption in where the detector readout is in the geometry.
 - The default absorption coefficient for LYSO is 1/16 cm-1. This was informed by research papers; however, this value has large error bars.
 - The default optical pad material is assumed to be a perfect transmitter (absorption coefficient = 0), meaning it will not absorb any photons.
@@ -30,6 +50,7 @@ This inconsistency, while minor, should probably be corrected.
 - Plate
 - Plate with cut face ("chamfered")
 - Triangular prism (1 SiPM and 6 SiPM configurations)
+    - Actually, there are some geometric issues with these. Removed until they can be fixed.
 
 # What the simulations DO:
 - Allow construction of a detector configuration using various crystal shapes.
@@ -37,5 +58,6 @@ This inconsistency, while minor, should probably be corrected.
 - Provide a nice baseline for additional or more complicated crystal shapes.
 
 # What the simulations DON'T DO:
-- Lambertian scattering off the ESR surface.
-    - This is currently commented out since it greatly increases the run time and sometimes results in crashes due to geometry errors.
+- ~~Lambertian scattering off the ESR surface.~~
+    - ~~This is currently commented out since it greatly increases the run time and sometimes results in crashes due to geometry errors.~~
+- Allow specification of depth where the scintillated photons are released. I think this is a relatively minor thing and would be easy to implement, but it's not currently configured to allow this.

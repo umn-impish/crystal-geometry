@@ -94,7 +94,7 @@ def center_with_origin(node: pvtrace.Node, which: str):
     i = AXES[which]
     c_min, c_max = min_physical_value(node, which), max_physical_value(node, which)
     diff = np.abs(np.abs(c_max) - np.abs(c_min))
-    if diff > 1e-16:
+    if diff > 0:
         t = [0, 0, 0]
         t[i] = -(c_max + c_min) / 2
         node.translate(t)

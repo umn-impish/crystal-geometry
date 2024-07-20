@@ -67,6 +67,8 @@ def plot_ratio_absorbed(
     world: pvtrace.Node,
     which_node: str,
     ax: plt.Axes = None,
+    show_colorbar: bool = True,
+    show_legend: bool = True,
     **pcolorkwargs
 ):
     """
@@ -89,16 +91,28 @@ def plot_ratio_absorbed(
     C = ax.pcolormesh(Y, Z, surface, **pcolorkwargs)
     ax.scatter(Y.flatten(), Z.flatten(), color='black', marker='.', s=2)
 
-    plt.colorbar(C, label=f'ratio absorbed by {which_node}')
-    patches = []
+    if show_colorbar:
+        plt.colorbar(C, label=f'ratio absorbed by {which_node}')
 
     colors = itertools.cycle(plt.cm.plasma(np.linspace(0, 1, len(nodes)+1)))
     
+    patches = []
     for node in nodes.values():
         color = next(colors)
         draw_node_shape(node, ax, 'x', color=color)
         patches.append(mpatches.Patch(color=color, label=(node.name).replace('_', ' ')))
-    ax.legend(handles=patches)
+    if show_legend:
+        ax.legend(handles=patches)
+
+    # Make square.
+    xdiff = np.diff(ax.get_xlim())[0]
+    ydiff = np.diff(ax.get_ylim())[0]
+    if xdiff > ydiff:
+        ylim = ax.get_ylim()
+        ax.set_ylim(ylim[0]-(xdiff-ydiff)/2, ylim[1]+(xdiff-ydiff)/2)
+    elif xdiff < ydiff:
+        xlim = ax.get_xlim()
+        ax.set_xlim(xlim[0]-(ydiff-xdiff)/2, xlim[1]+(ydiff-xdiff)/2)
 
     ax.set(
         xlabel='Horizontal coordinate [cm]',

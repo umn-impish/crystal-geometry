@@ -36,7 +36,7 @@ class event_dict(dict):
 class Manager():
 
 
-    def __init__(self, world_func: typing.Callable, out_dir: str):
+    def __init__(self, world_func: typing.Callable, out_dir: str, make_dirs: bool = True):
 
         self.time = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
         self.out_dir = os.path.join(out_dir, RUN_DIR_FMT.format(time=self.time))
@@ -44,8 +44,9 @@ class Manager():
         self.data_dir = os.path.join(self.out_dir, 'data/')
         self.world_func = world_func
 
-        os.makedirs(self.fig_dir, exist_ok=True)
-        os.makedirs(self.data_dir, exist_ok=True)
+        if make_dirs:
+            os.makedirs(self.fig_dir, exist_ok=True)
+            os.makedirs(self.data_dir, exist_ok=True)
 
 
     def load_runs_from_dir(self, pickle_dir: str):
@@ -194,38 +195,41 @@ class Manager():
         )
     
 
-    def plot_all_ratios_absorbed(self):
+    def plot_all_ratios_absorbed(
+        self,
+        crystal_kwargs: dict = {},
+        optical_pad_kwargs: dict = {},
+        sipm_kwargs: dict = {},
+    ):
         """
         Plots the ratio of photons absorbed by each object at each grid point.
         """
         
         node_kwargs = {
-            'crystal' : dict(
+            'crystal' : {**dict(
                 cmap = matplotlib.colormaps['RdYlGn_r'],
                 vmin=0.2,
                 vmax=0.8
-            ),
-            'optical pad' : dict(
+            ), **crystal_kwargs},
+            'optical pad' : {**dict(
                 cmap = matplotlib.colormaps['RdYlGn_r'],
                 vmin=0,
                 vmax=0.05
-            ),
-            'sipm' : dict(
+            ), **optical_pad_kwargs},
+            'sipm' : {**dict(
                 cmap = matplotlib.colormaps['RdYlGn'],
                 vmin=0.2,
                 vmax=0.5
-            )
+            ), **sipm_kwargs}
         }
 
         nodes = get_nodes_from_world(self.world_func()['world'])
         for name, node in nodes.items():
             ax = self.plot_ratio_absorbed(name, **node_kwargs[name])
-            ax.set(
-                xlim=(-2.25, 2.25),
-                ylim=(-0.2, 4.3)
-            )
+            
             fig_path = os.path.join(self.fig_dir, f'{name}_absorbed.png')
-            plt.savefig(fig_path, dpi=200)
+            print(fig_path)
+            plt.savefig(fig_path)
 
 
 @dataclass
@@ -371,27 +375,27 @@ def print_event_report(events: event_dict):
         print(f'\tratio {k}: {len(v)/total}')
 
 
-# def compute_ray_path_lengths(list_of_rays: list) -> list:
-#     """
-#     list_of_rays is a list of lists containing the each steps of each ray.
-#     Returns a list of distances, where each distance is the distance travelled
-#     by each ray in list_of_rays.
-#     """
+def compute_ray_path_lengths(list_of_rays: list) -> list:
+    """
+    list_of_rays is a list of lists containing the each steps of each ray.
+    Returns a list of distances, where each distance is the distance travelled
+    by each ray in list_of_rays.
+    """
 
-#     distance_lists = []
-#     for steps in list_of_rays:
-#         ray_distances = []
-#         previous_step = steps[0]
-#         for step in steps[1:]:
-#             p1 = Point(*previous_step[0].position)
-#             p2 = Point(*step[0].position)
-#             d = compute_distance(p1, p2)
-#             previous_step = step
-#             ray_distances.append(d)
-#         distance_lists.append(ray_distances)
-#     distances = [np.sum(d) for d in distance_lists]
+    distance_lists = []
+    for steps in list_of_rays:
+        ray_distances = []
+        previous_step = steps[0]
+        for step in steps[1:]:
+            p1 = Point(*previous_step[0].position)
+            p2 = Point(*step[0].position)
+            d = compute_distance(p1, p2)
+            previous_step = step
+            ray_distances.append(d)
+        distance_lists.append(ray_distances)
+    distances = [np.sum(d) for d in distance_lists]
 
-#     return distances
+    return distances
 
 
 # def model_func(t, A, K, C):
@@ -429,32 +433,32 @@ def print_event_report(events: event_dict):
 #     return A, K, C
 
 
-# def histogram_distances(distances: list, ax: plt.Axes = None, fit: bool = False) -> plt.Axes:
+def histogram_distances(distances: list, bins: int = 10, ax: plt.Axes = None, fit: bool = False) -> plt.Axes:
 
-#     if ax is None:
-#         fig, ax = plt.subplots(figsize=(8,6), layout='constrained')
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8,6), layout='constrained')
     
-#     H, bins = np.histogram(distances, bins=20)
-#     _ = ax.stairs(H, bins, color='black', label='simulated')
-#     ax.set(
-#         xlabel='Photon path length [cm]',
-#         ylabel='Counts',
-#         title=f'mean path length: {np.mean(distances):0.2f} cm',
-#         ylim=(0.1, ax.get_ylim()[1]),
-#         yscale='log'
-#     )
+    H, bins = np.histogram(distances, bins=bins)
+    _ = ax.stairs(H, bins, color='black', label='simulated')
+    ax.set(
+        xlabel='Photon path length [cm]',
+        ylabel='Counts',
+        title=f'mean path length: {np.mean(distances):0.2f} cm',
+        ylim=(0.1, ax.get_ylim()[1]),
+        yscale='log'
+    )
 
-#     if fit:
-#         C0 = -0.1
-#         A, K = fit_exp_linear(bins[:-1], H, C=C0)
-#         # A, K, C0 = fit_exp_nonlinear(bins[:-1], H, p0=(1, 1, -1))
-#         fit_y = model_func(bins[:-1], A, K, C0)
-#         ax.plot(
-#             bins[:-1] + (bins[1]-bins[0])/2,
-#             fit_y,
-#             c='orange',
-#             label=f'exp. fit A = {A:0.1E}, 1/K = {1/K:0.2f}, C = {C0:0.1f}\n A *e^-Kx  + C'
-#         )
-#         ax.legend()
+    # if fit:
+    #     C0 = -0.1
+    #     A, K = fit_exp_linear(bins[:-1], H, C=C0)
+    #     # A, K, C0 = fit_exp_nonlinear(bins[:-1], H, p0=(1, 1, -1))
+    #     fit_y = model_func(bins[:-1], A, K, C0)
+    #     ax.plot(
+    #         bins[:-1] + (bins[1]-bins[0])/2,
+    #         fit_y,
+    #         c='orange',
+    #         label=f'exp. fit A = {A:0.1E}, 1/K = {1/K:0.2f}, C = {C0:0.1f}\n A *e^-Kx  + C'
+    #     )
+    #     ax.legend()
 
-#     return ax
+    return ax
