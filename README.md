@@ -49,8 +49,10 @@ for an editable install.
 - Rod with cut face ("wedge")
 - Plate
 - Plate with cut face ("chamfered")
-- Triangular prism (1 SiPM and 6 SiPM configurations)
+- ~~Chamfered triangular prisms~~
     - Actually, there are some geometric issues with these. Removed until they can be fixed.
+- Isosceles triangular prisms (**the best!**)
+     - 6 and 10 SiPM configurations
 
 # What the simulations DO:
 - Allow construction of a detector configuration using various crystal shapes.
