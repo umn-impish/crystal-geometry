@@ -31,6 +31,9 @@ DEFAULT_TRIANGULAR_PRISM_ESR_SHELL_STL = os.path.join(STL_DIR, 'chamfered-triang
 DEFAULT_TRIANGULAR_PRISM_6SIPM_STL = os.path.join(STL_DIR, 'chamfered-triangular-prism-6sipm-Body.stl')
 DEFAULT_TRIANGULAR_PRISM_ESR_SHELL_6SIPM_STL = os.path.join(STL_DIR, 'chamfered-triangular-prism-6sipm-esr-shell-Body.stl')
 
+DEFAULT_PLATE_STL = os.path.join(STL_DIR, 'plate-Body.stl')
+DEFAULT_PLATE_ESR_SHELL_STL = os.path.join(STL_DIR, 'plate-esr-shell-Body.stl')
+
 CHAMFERED_PLATE_STL_FMT = os.path.join(STL_DIR, 'chamfered-plate-{angle}deg-Body.stl')
 CHAMFERED_PLATE_ESR_SHELL_STL_FMT = os.path.join(STL_DIR, 'chamfered-plate-{angle}deg-esr-shell-Body.stl')
 
@@ -544,6 +547,60 @@ def build_doorstop_angled_world(
 
     return nodes
 
+
+def build_plate_world(
+    crystal_kwargs: dict = {},
+    esr_shell_kwargs: dict = {},
+    optical_pad_kwargs: dict = {},
+    sipm_kwargs: dict = {},
+    world: pvtrace.Node = None
+) -> dict:
+    """
+    The kwargs for each node are the arguments to their respective generation
+    functions in the "definitions" submodule. If not specified, the defaults
+    will be used.
+    """
+    
+    if world is None:
+        world = definitions.generate_world()
+    
+    DEFAULT_KWARGS = dict(
+        crystal = dict(
+            stl_file=DEFAULT_PLATE_STL,
+            scaling=0.1,
+            world=world
+        ),
+        esr_shell = dict(
+            stl_file=DEFAULT_PLATE_ESR_SHELL_STL,
+            scaling=0.1,
+            world=world
+        ),
+        optical_pad = dict(
+            world=world,
+            size=(0.4, 4.0, 0.01)
+        ),
+        sipm = dict(
+            world=world,
+            size=(0.6, 4.0, 0.05)
+        )
+    )
+            
+    crystal = definitions.generate_crystal(**{**DEFAULT_KWARGS['crystal'], **crystal_kwargs})
+    esr_shell = definitions.generate_esr_shell(**{**DEFAULT_KWARGS['esr_shell'], **esr_shell_kwargs})
+    optical_pad = definitions.generate_optical_pad(**{**DEFAULT_KWARGS['optical_pad'], **optical_pad_kwargs})
+    sipm = definitions.generate_sipm(**{**DEFAULT_KWARGS['sipm'], **sipm_kwargs})
+
+    basic_stack(crystal, esr_shell, optical_pad, sipm, 0.0101)
+
+    nodes = dict(
+        world=world,
+        crystal=crystal,
+        esr_shell=esr_shell,
+        optical_pad=optical_pad,
+        sipm=sipm
+    )
+
+    return nodes
 
 
 def build_chamfered_plate_world(

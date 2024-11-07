@@ -82,6 +82,58 @@ class LYSO(pvtrace.Material):
         )
 
 
+class CoatedLYSO(pvtrace.Material):
+    def __init__(
+        self,
+        refractive_index: float = 1.8,
+        absorption_coefficient: float = 1/50 # cm^-1,
+    ):
+        super().__init__(
+            refractive_index=refractive_index,
+            components=[pvtrace.Absorber(coefficient=absorption_coefficient)],
+            surface=pvtrace.Surface(delegate=SilverCoating())
+        )
+
+
+class SilverCoating(pvtrace.FresnelSurfaceDelegate):
+    """ A section of the top surface is covered with a perfect mirrrors.
+    
+        All other surface obey the Fresnel equations.
+    """
+
+    def reflectivity(self, surface, ray, geometry, container, adjacent):
+        """ Return the reflectivity of the part of the surface hit by the ray.
+        
+            Parameters
+            ----------
+            surface: Surface
+                The surface object belonging to the material.
+            ray: Ray
+                The ray hitting the surface in the local coordinate system of the `geometry` object.
+            geometry: Geometry
+                The object being hit (e.g. Sphere, Box, Cylinder, Mesh etc.)
+            container: Node
+                The node containing the ray.
+            adjacent: Node
+                The node that will contain the ray if the ray is transmitted.
+        """
+        # Get the surface normal to determine which surface has been hit.
+        normal = geometry.normal(ray.position)
+        
+        # Normal are outward facing
+        # 45 deg readout face
+        TOP_SURFACE = (0.707106781, 0, 0.707106781)
+        
+        # If a ray hits anywhere that's not the readout,
+        # set the reflectivity to 1.
+        if not np.allclose(normal, TOP_SURFACE):
+            return 1.0
+        
+        # Otherwise return the Frensel reflection probability.
+        return super(SilverCoating, self).reflectivity(surface, ray, geometry, container, adjacent)  # opt-out of handling custom reflection
+
+
+
 world_material = pvtrace.Material(refractive_index=1.0)
 
 lyso_material = LYSO() # Default
